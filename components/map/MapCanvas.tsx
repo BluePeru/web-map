@@ -94,6 +94,11 @@ export default function MapCanvas() {
     };
   }, [rawEvents, timeWindow, selectedCategories]);
 
+  const filteredEventsRef = useRef<IncidentFeatureCollection>(filteredEvents);
+  useEffect(() => {
+    filteredEventsRef.current = filteredEvents;
+  }, [filteredEvents]);
+
   // Update visible incidents count based on current map viewport bounds
   const updateVisibleCount = useCallback(() => {
     const map = mapRef.current;
@@ -103,7 +108,7 @@ export default function MapCanvas() {
       const bounds = map.getBounds();
       if (!bounds) return;
       let count = 0;
-      for (const feat of filteredEvents.features) {
+      for (const feat of filteredEventsRef.current.features) {
         const coords = feat.geometry.coordinates;
         if (bounds.contains(new mapboxgl.LngLat(coords[0], coords[1]))) {
           count++;
@@ -113,7 +118,78 @@ export default function MapCanvas() {
     } catch {
       // Ignored if map is in transition
     }
-  }, [filteredEvents, setVisibleIncidentCount]);
+  }, [setVisibleIncidentCount]);
+
+  // Synchronize DOM Balloon Markers
+  const syncMarkers = useCallback(
+    (events: IncidentFeatureCollection) => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      const markersMap = markersMapRef.current;
+
+      // 1. Toggle visibility fast via CSS display
+      markersMap.forEach(({ marker }) => {
+        marker.getElement().style.display = showIncidents ? '' : 'none';
+      });
+
+      if (!showIncidents) return;
+
+      const currentEventIds = new Set<string>();
+
+      for (const feat of events.features) {
+        const coords = feat.geometry?.coordinates;
+        if (!coords || coords.length < 2) continue;
+
+        const props = feat.properties;
+        const label = formatEventRelativeTime(props.incidentAt, props.createdAt);
+        if (!label) continue;
+
+        const eventId = props.id;
+        currentEventIds.add(eventId);
+
+        const existing = markersMap.get(eventId);
+        if (existing) {
+          // Update label text if changed
+          if (existing.label !== label) {
+            const bubble = existing.marker.getElement().querySelector('div');
+            if (bubble) bubble.textContent = label;
+            existing.label = label;
+          }
+          // Keep properties fresh for click handler
+          existing.props = props;
+        } else {
+          const el = createBalloonMarkerElement(label);
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const current = markersMap.get(eventId);
+            if (current) {
+              selectIncident(current.props);
+            }
+          });
+
+          const marker = new mapboxgl.Marker({
+            element: el,
+            anchor: 'bottom',
+            offset: [0, -8],
+          })
+            .setLngLat([coords[0], coords[1]])
+            .addTo(map);
+
+          markersMap.set(eventId, { marker, props, label });
+        }
+      }
+
+      // 2. Remove markers that are no longer in filtered events or whose label became null
+      markersMap.forEach((entry, id) => {
+        if (!currentEventIds.has(id)) {
+          entry.marker.remove();
+          markersMap.delete(id);
+        }
+      });
+    },
+    [showIncidents, selectIncident]
+  );
 
   // Initialize Mapbox map
   useEffect(() => {
@@ -209,7 +285,7 @@ export default function MapCanvas() {
       // 5. Add Events GeoJSON Source
       map.addSource('events-source', {
         type: 'geojson',
-        data: filteredEvents,
+        data: filteredEventsRef.current,
       });
 
       // 6. Add Pulsing Radar Dot Layer (Symbol)
@@ -241,6 +317,8 @@ export default function MapCanvas() {
         },
       });
 
+      // Synchronize DOM markers and visible incident counter immediately on map load
+      syncMarkers(filteredEventsRef.current);
       updateVisibleCount();
     });
 
@@ -331,83 +409,21 @@ export default function MapCanvas() {
 
   // Synchronize DOM Balloon Markers reactively
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !isMapLoaded) return;
+    if (!isMapLoaded) return;
+    syncMarkers(filteredEvents);
+  }, [filteredEvents, isMapLoaded, syncMarkers]);
 
-    const markersMap = markersMapRef.current;
-
-    // 1. Toggle visibility fast via CSS display
-    markersMap.forEach(({ marker }) => {
-      marker.getElement().style.display = showIncidents ? '' : 'none';
-    });
-
-    if (!showIncidents) return;
-
-    const currentEventIds = new Set<string>();
-
-    for (const feat of filteredEvents.features) {
-      const coords = feat.geometry?.coordinates;
-      if (!coords || coords.length < 2) continue;
-
-      const props = feat.properties;
-      const label = formatEventRelativeTime(props.incidentAt, props.createdAt);
-      if (!label) continue;
-
-      const eventId = props.id;
-      currentEventIds.add(eventId);
-
-      const existing = markersMap.get(eventId);
-      if (existing) {
-        // Update label text if changed
-        if (existing.label !== label) {
-          const bubble = existing.marker.getElement().querySelector('div');
-          if (bubble) bubble.textContent = label;
-          existing.label = label;
-        }
-        // Keep properties fresh for click handler
-        existing.props = props;
-      } else {
-        const el = createBalloonMarkerElement(label);
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const current = markersMap.get(eventId);
-          if (current) {
-            selectIncident(current.props);
-          }
-        });
-
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'bottom',
-          offset: [0, -8],
-        })
-          .setLngLat([coords[0], coords[1]])
-          .addTo(map);
-
-        markersMap.set(eventId, { marker, props, label });
-      }
-    }
-
-    // 2. Remove markers that are no longer in filtered events or whose label became null
-    markersMap.forEach((entry, id) => {
-      if (!currentEventIds.has(id)) {
-        entry.marker.remove();
-        markersMap.delete(id);
-      }
-    });
-  }, [filteredEvents, isMapLoaded, showIncidents, selectIncident]);
-
-  // Update GeoJSON data reactively when filteredEvents change
+  // Update GeoJSON data reactively when filteredEvents change or map finishes loading
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoadedRef.current) return;
+    if (!map || !isMapLoaded) return;
 
     const source = map.getSource('events-source') as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       source.setData(filteredEvents);
     }
     updateVisibleCount();
-  }, [filteredEvents, updateVisibleCount]);
+  }, [filteredEvents, isMapLoaded, updateVisibleCount]);
 
   // Update Heatmap Visibility reactively
   useEffect(() => {
