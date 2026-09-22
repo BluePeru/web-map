@@ -5,24 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import { useMapStore, CategoryFilterId } from '@/store/useMapStore';
 import { useRecentEvents } from '@/lib/useRecentEvents';
 import { registerAllPulseImages } from '@/lib/mapboxPulseFactory';
-import { formatEventRelativeTime } from '@/lib/timeUtils';
 import { IncidentFeatureCollection, IncidentProperties, HexagonProperties, CrimeType } from '@/types/map';
-
-function createBalloonMarkerElement(label: string): HTMLDivElement {
-  const container = document.createElement('div');
-  container.className = 'group relative cursor-pointer transition-transform hover:scale-105 active:scale-95 select-none';
-
-  const bubble = document.createElement('div');
-  bubble.className = 'bg-slate-900/95 border border-slate-700/80 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-lg shadow-black/50 backdrop-blur-sm whitespace-nowrap flex items-center gap-1.5';
-  bubble.textContent = label;
-
-  const arrow = document.createElement('div');
-  arrow.className = 'w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-slate-900/95 mx-auto -mt-[1px]';
-
-  container.appendChild(bubble);
-  container.appendChild(arrow);
-  return container;
-}
 
 const CATEGORY_GROUP_MAP: Record<CategoryFilterId, CrimeType[]> = {
   VIOLENT: ['SHOOTING', 'ASSAULT'],
@@ -37,7 +20,6 @@ export default function MapCanvas() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapLoadedRef = useRef<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
-  const markersMapRef = useRef<Map<string, { marker: mapboxgl.Marker; props: IncidentProperties; label: string }>>(new Map());
 
   // Zustand state
   const {
@@ -119,77 +101,6 @@ export default function MapCanvas() {
       // Ignored if map is in transition
     }
   }, [setVisibleIncidentCount]);
-
-  // Synchronize DOM Balloon Markers
-  const syncMarkers = useCallback(
-    (events: IncidentFeatureCollection) => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      const markersMap = markersMapRef.current;
-
-      // 1. Toggle visibility fast via CSS display
-      markersMap.forEach(({ marker }) => {
-        marker.getElement().style.display = showIncidents ? '' : 'none';
-      });
-
-      if (!showIncidents) return;
-
-      const currentEventIds = new Set<string>();
-
-      for (const feat of events.features) {
-        const coords = feat.geometry?.coordinates;
-        if (!coords || coords.length < 2) continue;
-
-        const props = feat.properties;
-        const label = formatEventRelativeTime(props.incidentAt, props.createdAt);
-        if (!label) continue;
-
-        const eventId = props.id;
-        currentEventIds.add(eventId);
-
-        const existing = markersMap.get(eventId);
-        if (existing) {
-          // Update label text if changed
-          if (existing.label !== label) {
-            const bubble = existing.marker.getElement().querySelector('div');
-            if (bubble) bubble.textContent = label;
-            existing.label = label;
-          }
-          // Keep properties fresh for click handler
-          existing.props = props;
-        } else {
-          const el = createBalloonMarkerElement(label);
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const current = markersMap.get(eventId);
-            if (current) {
-              selectIncident(current.props);
-            }
-          });
-
-          const marker = new mapboxgl.Marker({
-            element: el,
-            anchor: 'bottom',
-            offset: [0, -8],
-          })
-            .setLngLat([coords[0], coords[1]])
-            .addTo(map);
-
-          markersMap.set(eventId, { marker, props, label });
-        }
-      }
-
-      // 2. Remove markers that are no longer in filtered events or whose label became null
-      markersMap.forEach((entry, id) => {
-        if (!currentEventIds.has(id)) {
-          entry.marker.remove();
-          markersMap.delete(id);
-        }
-      });
-    },
-    [showIncidents, selectIncident]
-  );
 
   // Initialize Mapbox map
   useEffect(() => {
@@ -317,8 +228,6 @@ export default function MapCanvas() {
         },
       });
 
-      // Synchronize DOM markers and visible incident counter immediately on map load
-      syncMarkers(filteredEventsRef.current);
       updateVisibleCount();
     });
 
@@ -397,8 +306,6 @@ export default function MapCanvas() {
     });
 
     return () => {
-      markersMapRef.current.forEach((entry) => entry.marker.remove());
-      markersMapRef.current.clear();
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       map.remove();
       mapRef.current = null;
@@ -406,12 +313,6 @@ export default function MapCanvas() {
       setIsMapLoaded(false);
     };
   }, []);
-
-  // Synchronize DOM Balloon Markers reactively
-  useEffect(() => {
-    if (!isMapLoaded) return;
-    syncMarkers(filteredEvents);
-  }, [filteredEvents, isMapLoaded, syncMarkers]);
 
   // Update GeoJSON data reactively when filteredEvents change or map finishes loading
   useEffect(() => {
