@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
       .select('id, title, description, type, latitude, longitude, media_url, created_at, incident_at, temporal_precision')
       .eq('source', 'OFFICIAL')
       .is('deleted_at', null)
-      .gte('created_at', cutoffDate.toISOString())
+      .or(`incident_at.gte.${cutoffDate.toISOString()},and(incident_at.is.null,created_at.gte.${cutoffDate.toISOString()})`)
+      .order('incident_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
