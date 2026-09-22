@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import TacticalHeader from '@/components/ui/TacticalHeader';
 import ControlPanel from '@/components/ui/ControlPanel';
 import DetailDrawer from '@/components/ui/DetailDrawer';
-import { LeadTrapCard, B2BLeadModal } from '@/components/ui/LeadComponents';
+import { B2BLeadModal } from '@/components/ui/LeadComponents';
 import { useMapStore } from '@/store/useMapStore';
 import { Loader2 } from 'lucide-react';
 
@@ -56,10 +56,7 @@ export default function HomePage() {
       {/* 4. Incident / Hexagon Detail Drawer */}
       <DetailDrawer />
 
-      {/* 5. Bottom B2B Lead Trigger */}
-      <LeadTrapCard />
-
-      {/* 6. Unified Modal for B2B Leads */}
+      {/* 5. Unified Modal for B2B Leads */}
       <B2BLeadModal />
     </main>
   );

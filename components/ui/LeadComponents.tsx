@@ -2,44 +2,7 @@
 
 import React, { useState } from 'react';
 import { useMapStore } from '@/store/useMapStore';
-import { ShieldCheck, ArrowRight, X, Building2, User, Phone, Briefcase, MessageSquare, Loader2 } from 'lucide-react';
-
-export function LeadTrapCard() {
-  const { openLeadModal } = useMapStore();
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed) return null;
-
-  return (
-    <div className="absolute bottom-5 left-3 md:left-6 z-20 max-w-[280px] md:max-w-xs bg-zinc-950/90 backdrop-blur-md border border-zinc-800/90 rounded-xl p-3.5 shadow-2xl text-zinc-200">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-2 text-xs font-mono font-bold text-blue-400">
-          <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-          <span>BLUE INTEL</span>
-        </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="text-zinc-500 hover:text-zinc-300 p-0.5"
-          title="Ocultar sugerencia"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      <p className="mt-2 text-xs text-zinc-300 font-sans leading-relaxed">
-        ¿Supervisas flotas, locales comerciales o personal en estas zonas de Lima?
-      </p>
-
-      <button
-        onClick={openLeadModal}
-        className="mt-3 w-full flex items-center justify-center space-x-2 py-1.5 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-mono font-medium border border-zinc-700 transition-colors"
-      >
-        <span>Auditar Rutas y Puntos</span>
-        <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
-      </button>
-    </div>
-  );
-}
+import { ArrowRight, X, Building2, User, Phone, Briefcase, MessageSquare, Loader2 } from 'lucide-react';
 
 export function B2BLeadModal() {
   const { isLeadModalOpen, closeLeadModal } = useMapStore();
