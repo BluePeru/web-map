@@ -225,6 +225,18 @@ export default function DetailDrawer() {
                 />
               </div>
 
+              {/* Recency / Opacity info */}
+              <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 bg-zinc-900/50 px-2.5 py-1.5 rounded-lg border border-zinc-800">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-zinc-500" /> Antigüedad de hechos:
+                </span>
+                <span className={selectedHexagon.opacity && selectedHexagon.opacity < 1 ? 'text-amber-400/90' : 'text-emerald-400/90'}>
+                  {selectedHexagon.opacity && selectedHexagon.opacity < 1
+                    ? 'Histórica (90 a 360 días)'
+                    : 'Reciente (últimos 90 días)'}
+                </span>
+              </div>
+
               {/* Top Crime */}
               {selectedHexagon.top_crime && (
                 <div className="space-y-1">

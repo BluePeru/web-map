@@ -15,7 +15,7 @@ export function LeadTrapCard() {
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-2 text-xs font-mono font-bold text-blue-400">
           <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-          <span>BLUE B2B INTEL</span>
+          <span>BLUE INTEL</span>
         </div>
         <button
           onClick={() => setDismissed(true)}

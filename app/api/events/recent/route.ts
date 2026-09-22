@@ -20,6 +20,14 @@ export async function GET(req: NextRequest) {
     const rawDays = parseInt(searchParams.get('days') || '30', 10);
     const days = isNaN(rawDays) ? 30 : Math.min(Math.max(rawDays, 1), 30);
 
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({
+        type: 'FeatureCollection',
+        features: [],
+        warning: 'Supabase credentials not configured in environment',
+      });
+    }
+
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
