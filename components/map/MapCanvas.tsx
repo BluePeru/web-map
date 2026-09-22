@@ -104,6 +104,7 @@ export default function MapCanvas() {
     mapboxgl.accessToken = token;
 
     const styleUrl = process.env.NEXT_PUBLIC_MAPBOX_STYLE || 'mapbox://styles/mapbox/dark-v11';
+    const blueApiBaseUrl = process.env.NEXT_PUBLIC_BLUE_API_BASE_URL || 'https://dev.b1peru.com/api';
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -131,7 +132,7 @@ export default function MapCanvas() {
       registerAllPulseImages(map);
 
       // 2. Add H3 Vector Tiles Source
-      const tileUrl = '/api/tiles/{z}/{x}/{y}.pbf?mode=risk&v=10';
+      const tileUrl = `${blueApiBaseUrl}/v1/tiles/{z}/{x}/{y}.pbf?mode=risk&v=10`;
       map.addSource('heatmap-source', {
         type: 'vector',
         tiles: [tileUrl],
@@ -148,7 +149,7 @@ export default function MapCanvas() {
           visibility: showHeatmap ? 'visible' : 'none',
         },
         paint: {
-          'fill-opacity': ['*', 0.55, ['coalesce', ['get', 'opacity'], 0.0]],
+          'fill-opacity': ['*', 0.55, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
           'fill-color': [
             'step',
             ['get', 'risk_score'],
@@ -172,7 +173,7 @@ export default function MapCanvas() {
         },
         paint: {
           'line-width': 1.2,
-          'line-opacity': ['*', 0.75, ['coalesce', ['get', 'opacity'], 0.0]],
+          'line-opacity': ['*', 0.75, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
           'line-color': [
             'step',
             ['get', 'risk_score'],
