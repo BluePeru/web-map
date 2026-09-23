@@ -208,6 +208,8 @@ export default function MapCanvas() {
           'icon-image': ['get', 'pulseIcon'],
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
           visibility: showIncidents ? 'visible' : 'none',
         },
       });
@@ -225,6 +227,8 @@ export default function MapCanvas() {
           'circle-color': ['get', 'color'],
           'circle-stroke-width': 1.5,
           'circle-stroke-color': '#ffffff',
+          'circle-pitch-alignment': 'map',
+          'circle-pitch-scale': 'map',
         },
       });
 
