@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { useMapStore, CategoryFilterId } from '@/store/useMapStore';
+import { useMapStore, CategoryFilterId, MAPBOX_STYLES } from '@/store/useMapStore';
 import { useRecentEvents } from '@/lib/useRecentEvents';
 import { registerAllPulseImages } from '@/lib/mapboxPulseFactory';
 import { IncidentFeatureCollection, IncidentProperties, HexagonProperties, CrimeType } from '@/types/map';
@@ -29,6 +29,7 @@ export default function MapCanvas() {
     pitch,
     showHeatmap,
     showIncidents,
+    currentStyleId,
     timeWindow,
     selectedCategories,
     selectIncident,
@@ -37,6 +38,8 @@ export default function MapCanvas() {
     setVisibleIncidentCount,
     setViewport,
   } = useMapStore();
+
+  const prevStyleIdRef = useRef<string>(currentStyleId);
 
   // Data hook (BFF)
   const { data: rawEvents } = useRecentEvents(30);
@@ -102,6 +105,122 @@ export default function MapCanvas() {
     }
   }, [setVisibleIncidentCount]);
 
+  // Modularized Custom Layers Setup (idempotent with defensive guards)
+  const setupCustomLayers = useCallback((map: mapboxgl.Map) => {
+    // 1. Register GPU Animated Radar Pulses
+    registerAllPulseImages(map);
+
+    // 2. Read live state from Zustand to prevent stale closures
+    const { showHeatmap: liveShowHeatmap, showIncidents: liveShowIncidents } = useMapStore.getState();
+    const blueApiBaseUrl = process.env.NEXT_PUBLIC_BLUE_API_BASE_URL || 'https://dev.b1peru.com/api';
+
+    // 3. Add H3 Vector Tiles Source
+    if (!map.getSource('heatmap-source')) {
+      const tileUrl = `${blueApiBaseUrl}/v1/tiles/{z}/{x}/{y}.pbf?mode=risk&v=10`;
+      map.addSource('heatmap-source', {
+        type: 'vector',
+        tiles: [tileUrl],
+        maxzoom: 15,
+      });
+    }
+
+    // 4. Add H3 Fill Layer
+    if (!map.getLayer('heatmap-fill')) {
+      map.addLayer({
+        id: 'heatmap-fill',
+        type: 'fill',
+        source: 'heatmap-source',
+        'source-layer': 'risk-hexagons',
+        layout: {
+          visibility: liveShowHeatmap ? 'visible' : 'none',
+        },
+        paint: {
+          'fill-opacity': ['*', 0.55, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
+          'fill-color': [
+            'step',
+            ['get', 'risk_score'],
+            '#22c55e', // < 0.25 (Bajo)
+            0.25,
+            '#f97316', // 0.25 - 0.59 (Medio)
+            0.6,
+            '#ef4444', // >= 0.60 (Alto)
+          ],
+        },
+      });
+    }
+
+    // 5. Add H3 Stroke Layer
+    if (!map.getLayer('heatmap-stroke')) {
+      map.addLayer({
+        id: 'heatmap-stroke',
+        type: 'line',
+        source: 'heatmap-source',
+        'source-layer': 'risk-hexagons',
+        layout: {
+          visibility: liveShowHeatmap ? 'visible' : 'none',
+        },
+        paint: {
+          'line-width': 1.2,
+          'line-opacity': ['*', 0.75, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
+          'line-color': [
+            'step',
+            ['get', 'risk_score'],
+            '#16a34a',
+            0.25,
+            '#ea580c',
+            0.6,
+            '#dc2626',
+          ],
+        },
+      });
+    }
+
+    // 6. Add Events GeoJSON Source
+    if (!map.getSource('events-source')) {
+      map.addSource('events-source', {
+        type: 'geojson',
+        data: filteredEventsRef.current,
+      });
+    }
+
+    // 7. Add Pulsing Radar Dot Layer (Symbol)
+    if (!map.getLayer('event-pings-layer')) {
+      map.addLayer({
+        id: 'event-pings-layer',
+        type: 'symbol',
+        source: 'events-source',
+        layout: {
+          'icon-image': ['get', 'pulseIcon'],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
+          visibility: liveShowIncidents ? 'visible' : 'none',
+        },
+      });
+    }
+
+    // 8. Add Solid Core Layer (Circle)
+    if (!map.getLayer('event-dots-layer')) {
+      map.addLayer({
+        id: 'event-dots-layer',
+        type: 'circle',
+        source: 'events-source',
+        layout: {
+          visibility: liveShowIncidents ? 'visible' : 'none',
+        },
+        paint: {
+          'circle-radius': 4.5,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ffffff',
+          'circle-pitch-alignment': 'map',
+          'circle-pitch-scale': 'map',
+        },
+      });
+    }
+  }, []);
+
   // Initialize Mapbox map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -109,12 +228,12 @@ export default function MapCanvas() {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
     mapboxgl.accessToken = token;
 
-    const styleUrl = process.env.NEXT_PUBLIC_MAPBOX_STYLE || 'mapbox://styles/mapbox/dark-v11';
-    const blueApiBaseUrl = process.env.NEXT_PUBLIC_BLUE_API_BASE_URL || 'https://dev.b1peru.com/api';
+    const initialStyleConfig = MAPBOX_STYLES.find((s) => s.id === useMapStore.getState().currentStyleId);
+    const initialStyleUrl = initialStyleConfig?.url || process.env.NEXT_PUBLIC_MAPBOX_STYLE || MAPBOX_STYLES[0].url;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: styleUrl,
+      style: initialStyleUrl,
       center: [longitude, latitude],
       zoom: zoom,
       pitch: pitch,
@@ -131,107 +250,19 @@ export default function MapCanvas() {
     };
     canvas.addEventListener('webglcontextlost', handleContextLost);
 
+    map.on('style.load', () => {
+      setupCustomLayers(map);
+      updateVisibleCount();
+    });
+
+    map.on('error', (e) => {
+      console.warn('[MapCanvas] Error cartográfico:', e);
+    });
+
     map.on('load', () => {
       mapLoadedRef.current = true;
       setIsMapLoaded(true);
-
-      // 1. Register GPU Animated Radar Pulses
-      registerAllPulseImages(map);
-
-      // 2. Add H3 Vector Tiles Source
-      const tileUrl = `${blueApiBaseUrl}/v1/tiles/{z}/{x}/{y}.pbf?mode=risk&v=10`;
-      map.addSource('heatmap-source', {
-        type: 'vector',
-        tiles: [tileUrl],
-        maxzoom: 15,
-      });
-
-      // 3. Add H3 Fill Layer
-      map.addLayer({
-        id: 'heatmap-fill',
-        type: 'fill',
-        source: 'heatmap-source',
-        'source-layer': 'risk-hexagons',
-        layout: {
-          visibility: showHeatmap ? 'visible' : 'none',
-        },
-        paint: {
-          'fill-opacity': ['*', 0.55, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
-          'fill-color': [
-            'step',
-            ['get', 'risk_score'],
-            '#22c55e', // < 0.25 (Bajo)
-            0.25,
-            '#f97316', // 0.25 - 0.59 (Medio)
-            0.6,
-            '#ef4444', // >= 0.60 (Alto)
-          ],
-        },
-      });
-
-      // 4. Add H3 Stroke Layer
-      map.addLayer({
-        id: 'heatmap-stroke',
-        type: 'line',
-        source: 'heatmap-source',
-        'source-layer': 'risk-hexagons',
-        layout: {
-          visibility: showHeatmap ? 'visible' : 'none',
-        },
-        paint: {
-          'line-width': 1.2,
-          'line-opacity': ['*', 0.75, ['to-number', ['coalesce', ['get', 'opacity'], 1.0], 1.0]],
-          'line-color': [
-            'step',
-            ['get', 'risk_score'],
-            '#16a34a',
-            0.25,
-            '#ea580c',
-            0.6,
-            '#dc2626',
-          ],
-        },
-      });
-
-      // 5. Add Events GeoJSON Source
-      map.addSource('events-source', {
-        type: 'geojson',
-        data: filteredEventsRef.current,
-      });
-
-      // 6. Add Pulsing Radar Dot Layer (Symbol)
-      map.addLayer({
-        id: 'event-pings-layer',
-        type: 'symbol',
-        source: 'events-source',
-        layout: {
-          'icon-image': ['get', 'pulseIcon'],
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-          'icon-pitch-alignment': 'map',
-          'icon-rotation-alignment': 'map',
-          visibility: showIncidents ? 'visible' : 'none',
-        },
-      });
-
-      // 7. Add Solid Core Layer (Circle)
-      map.addLayer({
-        id: 'event-dots-layer',
-        type: 'circle',
-        source: 'events-source',
-        layout: {
-          visibility: showIncidents ? 'visible' : 'none',
-        },
-        paint: {
-          'circle-radius': 4.5,
-          'circle-color': ['get', 'color'],
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#ffffff',
-          'circle-pitch-alignment': 'map',
-          'circle-pitch-scale': 'map',
-        },
-      });
-
+      setupCustomLayers(map);
       updateVisibleCount();
     });
 
@@ -250,9 +281,10 @@ export default function MapCanvas() {
     // Click Precedence Handler
     map.on('click', (e) => {
       // 1. Check for incident clicks first
-      const incidentFeatures = map.queryRenderedFeatures(e.point, {
-        layers: ['event-pings-layer', 'event-dots-layer'],
-      });
+      const incidentLayers = ['event-pings-layer', 'event-dots-layer'].filter((id) => !!map.getLayer(id));
+      const incidentFeatures = incidentLayers.length > 0
+        ? map.queryRenderedFeatures(e.point, { layers: incidentLayers })
+        : [];
 
       if (incidentFeatures && incidentFeatures.length > 0) {
         const feat = incidentFeatures[0];
@@ -273,9 +305,9 @@ export default function MapCanvas() {
       }
 
       // 2. Check for H3 Hexagon click if no incident was clicked
-      const hexFeatures = map.queryRenderedFeatures(e.point, {
-        layers: ['heatmap-fill'],
-      });
+      const hexFeatures = map.getLayer('heatmap-fill')
+        ? map.queryRenderedFeatures(e.point, { layers: ['heatmap-fill'] })
+        : [];
 
       if (hexFeatures && hexFeatures.length > 0) {
         const hex = hexFeatures[0];
@@ -317,6 +349,19 @@ export default function MapCanvas() {
       setIsMapLoaded(false);
     };
   }, []);
+
+  // Dynamically switch Mapbox style when currentStyleId changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapLoaded) return;
+    if (prevStyleIdRef.current === currentStyleId) return;
+    prevStyleIdRef.current = currentStyleId;
+
+    const styleConfig = MAPBOX_STYLES.find((s) => s.id === currentStyleId);
+    if (styleConfig) {
+      map.setStyle(styleConfig.url);
+    }
+  }, [currentStyleId, isMapLoaded]);
 
   // Update GeoJSON data reactively when filteredEvents change or map finishes loading
   useEffect(() => {
