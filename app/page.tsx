@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import TacticalHeader from '@/components/ui/TacticalHeader';
 import ControlPanel from '@/components/ui/ControlPanel';
 import DetailDrawer from '@/components/ui/DetailDrawer';
+import TacticalTicker from '@/components/ui/TacticalTicker';
+import TikTokActionMenu from '@/components/ui/TikTokActionMenu';
 import { B2BLeadModal } from '@/components/ui/LeadComponents';
 import { useMapStore } from '@/store/useMapStore';
 import { Loader2 } from 'lucide-react';
@@ -53,10 +55,16 @@ export default function HomePage() {
       {/* 3. Collapsible HUD Control Panel */}
       <ControlPanel />
 
-      {/* 4. Incident / Hexagon Detail Drawer */}
+      {/* 4. Bottom Continuous Tactical Ticker */}
+      <TacticalTicker />
+
+      {/* 5. Right Tactical Action Menu (TikTok-style) */}
+      <TikTokActionMenu />
+
+      {/* 6. Incident / Hexagon Detail Drawer */}
       <DetailDrawer />
 
-      {/* 5. Unified Modal for B2B Leads */}
+      {/* 7. Unified Modal for B2B Leads */}
       <B2BLeadModal />
     </main>
   );

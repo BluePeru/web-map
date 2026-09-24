@@ -25,6 +25,15 @@ const config: Config = {
       fontFamily: {
         mono: ['JetBrains Mono', 'Geist Mono', 'monospace'],
       },
+      keyframes: {
+        ticker: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        ticker: 'ticker 45s linear infinite',
+      },
     },
   },
   plugins: [],

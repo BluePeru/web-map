@@ -6,11 +6,11 @@ Este plan describe la hoja de ruta técnica paso a paso para implementar la cint
 
 ## Resumen de Fases
 
-- [ ] **Fase 1: Configuración de Animación en Tailwind CSS** (Extender keyframes y animation en `tailwind.config.ts`)
-- [ ] **Fase 2: Construcción del Componente `TacticalTicker.tsx`** (Tipado, mocks deterministas, vista de ítem, duplicación 4K y soporte de hover/accesibilidad)
-- [ ] **Fase 3: Integración en `HomePage` (`app/page.tsx`)** (Montar componente sobre el canvas con jerarquía z-index correcta)
-- [ ] **Fase 4: Pruebas Unitarias Automatizadas** (Crear `tests/TacticalTicker.test.tsx` con Vitest y Testing Library)
-- [ ] **Fase 5: Verificación de Calidad y Compilación** (Ejecución de test suites, `npm run build` y `npm run lint`)
+- [x] **Fase 1: Configuración de Animación en Tailwind CSS** (Extender keyframes y animation en `tailwind.config.ts`)
+- [x] **Fase 2: Construcción del Componente `TacticalTicker.tsx`** (Tipado, mocks deterministas, vista de ítem, duplicación 4K y soporte de hover/accesibilidad)
+- [x] **Fase 3: Integración en `HomePage` (`app/page.tsx`)** (Montar componente sobre el canvas con jerarquía z-index correcta)
+- [x] **Fase 4: Pruebas Unitarias Automatizadas** (Crear `tests/TacticalTicker.test.tsx` con Vitest y Testing Library)
+- [x] **Fase 5: Verificación de Calidad y Compilación** (Ejecución de test suites, `npm run build` y `npm run lint`)
 
 ---
 
