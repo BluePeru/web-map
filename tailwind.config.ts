@@ -32,7 +32,7 @@ const config: Config = {
         },
       },
       animation: {
-        ticker: 'ticker 45s linear infinite',
+        ticker: 'ticker 90s linear infinite',
       },
     },
   },
