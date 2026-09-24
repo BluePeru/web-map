@@ -7,6 +7,7 @@ describe('useMapStore', () => {
     useMapStore.setState({
       showHeatmap: true,
       showIncidents: true,
+      currentStyleId: 'dark',
       timeWindow: '30d',
       selectedCategories: [...ALL_CATEGORY_IDS],
       isHudCollapsed: false,
@@ -113,5 +114,34 @@ describe('useMapStore', () => {
 
     store.closeLeadModal();
     expect(useMapStore.getState().isLeadModalOpen).toBe(false);
+  });
+
+  it('cycles through map styles in continuous loop and allows direct style setting', () => {
+    const store = useMapStore.getState();
+    expect(store.currentStyleId).toBe('dark');
+
+    // 1 -> satellite
+    store.cycleMapStyle();
+    expect(useMapStore.getState().currentStyleId).toBe('satellite');
+
+    // 2 -> navigation
+    store.cycleMapStyle();
+    expect(useMapStore.getState().currentStyleId).toBe('navigation');
+
+    // 3 -> light
+    store.cycleMapStyle();
+    expect(useMapStore.getState().currentStyleId).toBe('light');
+
+    // 4 -> streets
+    store.cycleMapStyle();
+    expect(useMapStore.getState().currentStyleId).toBe('streets');
+
+    // 5 -> wraps back to dark
+    store.cycleMapStyle();
+    expect(useMapStore.getState().currentStyleId).toBe('dark');
+
+    // Direct setting
+    store.setMapStyle('satellite');
+    expect(useMapStore.getState().currentStyleId).toBe('satellite');
   });
 });

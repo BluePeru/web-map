@@ -11,6 +11,21 @@ export const ALL_CATEGORY_IDS: CategoryFilterId[] = [
   'OTHER',
 ];
 
+export interface MapboxStyleOption {
+  id: string;
+  name: string;
+  shortLabel: string;
+  url: string;
+}
+
+export const MAPBOX_STYLES: MapboxStyleOption[] = [
+  { id: 'dark', name: 'Oscuro Táctico', shortLabel: 'Oscuro', url: 'mapbox://styles/mapbox/dark-v11' },
+  { id: 'satellite', name: 'Satelital Híbrido', shortLabel: 'Satélite', url: 'mapbox://styles/mapbox/satellite-streets-v12' },
+  { id: 'navigation', name: 'Navegación Nocturna', shortLabel: 'Navega', url: 'mapbox://styles/mapbox/navigation-night-v1' },
+  { id: 'light', name: 'Claro Alto Contraste', shortLabel: 'Claro', url: 'mapbox://styles/mapbox/light-v11' },
+  { id: 'streets', name: 'Calles Urbano', shortLabel: 'Calles', url: 'mapbox://styles/mapbox/streets-v12' },
+];
+
 interface MapState {
   // Viewport
   latitude: number;
@@ -24,6 +39,11 @@ interface MapState {
   showIncidents: boolean;
   toggleHeatmap: () => void;
   toggleIncidents: () => void;
+
+  // Map style
+  currentStyleId: string;
+  cycleMapStyle: () => void;
+  setMapStyle: (styleId: string) => void;
 
   // Time window filter
   timeWindow: TimeWindow;
@@ -68,6 +88,16 @@ export const useMapStore = create<MapState>((set) => ({
   showIncidents: true,
   toggleHeatmap: () => set((state) => ({ showHeatmap: !state.showHeatmap })),
   toggleIncidents: () => set((state) => ({ showIncidents: !state.showIncidents })),
+
+  // Map style
+  currentStyleId: 'dark',
+  cycleMapStyle: () =>
+    set((state) => {
+      const currentIndex = MAPBOX_STYLES.findIndex((s) => s.id === state.currentStyleId);
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % MAPBOX_STYLES.length;
+      return { currentStyleId: MAPBOX_STYLES[nextIndex].id };
+    }),
+  setMapStyle: (styleId) => set({ currentStyleId: styleId }),
 
   // Time window
   timeWindow: '30d',
