@@ -120,28 +120,16 @@ describe('useMapStore', () => {
     const store = useMapStore.getState();
     expect(store.currentStyleId).toBe('dark');
 
-    // 1 -> satellite
-    store.cycleMapStyle();
-    expect(useMapStore.getState().currentStyleId).toBe('satellite');
-
-    // 2 -> navigation
+    // 1 -> navigation
     store.cycleMapStyle();
     expect(useMapStore.getState().currentStyleId).toBe('navigation');
 
-    // 3 -> light
-    store.cycleMapStyle();
-    expect(useMapStore.getState().currentStyleId).toBe('light');
-
-    // 4 -> streets
-    store.cycleMapStyle();
-    expect(useMapStore.getState().currentStyleId).toBe('streets');
-
-    // 5 -> wraps back to dark
+    // 2 -> wraps back to dark
     store.cycleMapStyle();
     expect(useMapStore.getState().currentStyleId).toBe('dark');
 
     // Direct setting
-    store.setMapStyle('satellite');
-    expect(useMapStore.getState().currentStyleId).toBe('satellite');
+    store.setMapStyle('navigation');
+    expect(useMapStore.getState().currentStyleId).toBe('navigation');
   });
 });

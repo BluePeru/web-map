@@ -20,10 +20,7 @@ export interface MapboxStyleOption {
 
 export const MAPBOX_STYLES: MapboxStyleOption[] = [
   { id: 'dark', name: 'Oscuro Táctico', shortLabel: 'Oscuro', url: 'mapbox://styles/mapbox/dark-v11' },
-  { id: 'satellite', name: 'Satelital Híbrido', shortLabel: 'Satélite', url: 'mapbox://styles/mapbox/satellite-streets-v12' },
-  { id: 'navigation', name: 'Navegación Nocturna', shortLabel: 'Navega', url: 'mapbox://styles/mapbox/navigation-night-v1' },
-  { id: 'light', name: 'Claro Alto Contraste', shortLabel: 'Claro', url: 'mapbox://styles/mapbox/light-v11' },
-  { id: 'streets', name: 'Calles Urbano', shortLabel: 'Calles', url: 'mapbox://styles/mapbox/streets-v12' },
+  { id: 'navigation', name: 'Navegación Nocturna', shortLabel: 'Navegación', url: 'mapbox://styles/mapbox/navigation-night-v1' },
 ];
 
 interface MapState {

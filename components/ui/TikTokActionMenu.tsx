@@ -82,13 +82,11 @@ export default function TikTokActionMenu({ actions }: TikTokActionMenuProps) {
 
         <button
           onClick={handleCycleStyle}
+          aria-label={`Cambiar estilo de mapa (Activo: ${currentStyle.name})`}
           title={`Cambiar estilo de mapa (Activo: ${currentStyle.name})`}
-          className="group relative w-12 h-12 rounded-full bg-zinc-950/85 backdrop-blur-md border border-zinc-700/80 hover:border-blue-500/80 text-zinc-200 shadow-2xl flex flex-col items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+          className="group relative w-11 h-11 md:w-12 md:h-12 rounded-full bg-zinc-950/85 backdrop-blur-md border border-zinc-700/80 hover:border-blue-500/80 text-zinc-200 shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
         >
           <Layers className="w-5 h-5 text-blue-400 group-hover:text-blue-300 transition-colors" />
-          <span className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 group-hover:text-zinc-200 uppercase mt-0.5 leading-none">
-            {currentStyle.shortLabel}
-          </span>
         </button>
       </div>
 

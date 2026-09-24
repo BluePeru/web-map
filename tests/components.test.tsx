@@ -90,21 +90,21 @@ describe('UI Components', () => {
   });
 
   describe('TikTokActionMenu', () => {
-    it('renders the map style button with default label and cycles on click', () => {
+    it('renders the map style button with icon only and cycles between styles on click', () => {
       render(<TikTokActionMenu />);
 
-      // Initial state is dark
-      expect(screen.getByText('Oscuro')).toBeInTheDocument();
+      const layerBtn = screen.getByTitle(/Cambiar estilo de mapa \(Activo: Oscuro Táctico\)/i);
+      expect(layerBtn).toBeInTheDocument();
+      // Ensure no text label is inside the layer button
+      expect(screen.queryByText('Oscuro')).not.toBeInTheDocument();
 
-      const layerBtn = screen.getByTitle(/Cambiar estilo de mapa/i);
       fireEvent.click(layerBtn);
 
-      // Store should transition to satellite
-      expect(useMapStore.getState().currentStyleId).toBe('satellite');
-      expect(screen.getByText('Satélite')).toBeInTheDocument();
+      // Store should transition to navigation
+      expect(useMapStore.getState().currentStyleId).toBe('navigation');
 
-      // Feedback toast should be rendered
-      expect(screen.getByText('Estilo: Satelital Híbrido')).toBeInTheDocument();
+      // Feedback toast should be rendered with new style name
+      expect(screen.getByText('Estilo: Navegación Nocturna')).toBeInTheDocument();
     });
 
     it('hides smoothly when an incident or hexagon is selected to avoid drawer collision', () => {
