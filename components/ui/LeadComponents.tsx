@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useMapStore } from '@/store/useMapStore';
 import { ArrowRight, X, Building2, User, Phone, Briefcase, MessageSquare, Loader2 } from 'lucide-react';
+import { trackLeadSubmission } from '@/lib/analytics';
 
 export function B2BLeadModal() {
   const { isLeadModalOpen, closeLeadModal } = useMapStore();
@@ -45,6 +46,9 @@ export function B2BLeadModal() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Error al procesar solicitud');
       }
+
+      // Track conversion event in GA4
+      trackLeadSubmission(company.trim(), operationType);
 
       // Close modal and redirect directly to WhatsApp
       closeLeadModal();
