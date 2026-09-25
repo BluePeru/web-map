@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { IncidentFeatureCollection } from '@/types/map';
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '/mapa';
+
 async function fetchRecentEvents(days: number = 30): Promise<IncidentFeatureCollection> {
-  const response = await fetch(`/api/events/recent?days=${days}`);
+  const response = await fetch(`${basePath}/api/events/recent?days=${days}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `Error ${response.status} al obtener incidentes.`);
