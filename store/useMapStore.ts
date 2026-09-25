@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { IncidentProperties, HexagonProperties, TimeWindow } from '@/types/map';
+import { trackIncidentSelection, trackTimeWindowChange } from '@/lib/analytics';
 
 export type CategoryFilterId = 'VIOLENT' | 'THEFT' | 'ACCIDENT' | 'FIRE' | 'OTHER';
 
@@ -98,7 +99,10 @@ export const useMapStore = create<MapState>((set) => ({
 
   // Time window
   timeWindow: '30d',
-  setTimeWindow: (timeWindow) => set({ timeWindow }),
+  setTimeWindow: (timeWindow) => {
+    trackTimeWindowChange(timeWindow);
+    set({ timeWindow });
+  },
 
   // Category filters
   selectedCategories: [...ALL_CATEGORY_IDS],
@@ -149,11 +153,13 @@ export const useMapStore = create<MapState>((set) => ({
   // Selection
   selectedIncident: null,
   selectedHexagon: null,
-  selectIncident: (incident) =>
+  selectIncident: (incident) => {
+    trackIncidentSelection(incident.id, incident.type);
     set({
       selectedIncident: incident,
       selectedHexagon: null,
-    }),
+    });
+  },
   selectHexagon: (hexagon) =>
     set({
       selectedHexagon: hexagon,
