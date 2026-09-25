@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import './globals.css';
 import QueryProvider from '@/components/providers/QueryProvider';
 
@@ -36,21 +35,18 @@ export default function RootLayout({
       <head>
         {GA_ID && (
           <>
-            <Script
-              strategy="afterInteractive"
+            <script
+              async
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             />
-            <Script
+            <script
               id="google-analytics"
-              strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
                   gtag('js', new Date());
-                  gtag('config', '${GA_ID}', {
-                    page_path: window.location.pathname,
-                  });
+                  gtag('config', '${GA_ID}');
                 `,
               }}
             />
