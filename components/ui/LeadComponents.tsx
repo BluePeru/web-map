@@ -28,7 +28,8 @@ export function B2BLeadModal() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/lead', {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '/mapa';
+      const res = await fetch(`${basePath}/api/lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
